@@ -1,17 +1,25 @@
 {
-  "name": "logootsplit-js",
+  "name": "logootsplit",
   "version": "0.1.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/logootsplit.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node_modules/.bin/babel src --presets babel-preset-es2015 --out-dir dist",
-    "prepublish": "npm run build"
+    "build": "webpack --mode=build",
+    "dev": "webpack --progress --colors --watch --mode=dev"
   },
   "author": "",
   "license": "Apache2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codetogether-editor/logootsplit-js"
+  },
   "devDependencies": {
     "babel-cli": "^6.16.0",
-    "babel-preset-es2015": "^6.16.0"
+    "babel-loader": "^6.2.4",
+    "babel-plugin-add-module-exports": "0.2.0",
+    "babel-preset-es2015": "^6.16.0",
+    "webpack": "1.13.0",
+    "yargs": "4.7.0"
   }
 }

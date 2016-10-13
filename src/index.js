@@ -1,3 +1,5 @@
+import {Foo} from "./foo.js";
+
 export default function LogootSplit() {
-  return null;
+    return Foo();
 }
