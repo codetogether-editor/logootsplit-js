@@ -1,108 +1,79 @@
-﻿/// <reference path="js/Const.js" />
-/// <reference path="js/Document.js" />
-/// <reference path="js/Tools.js" />
+class addCommandData{
+    constructor(str, id, session){
+        this.str = str
+        this.id = id
+        this.session = session
+    }
+}
+
+class delCommandData{
+    constructor(ids, session){
+        this.ids = ids
+        this.session = session
+    }
+}
 
 class Algorithm {
-    constructor(doc, sessionId) {
+    constructor(doc, session) {
         this.doc = doc
-        this.sessionId = sessionId 
+        this.session = session
+        this.clock = 0
     }
 
-    insert(str, pos) { //TODO verify pos values //TODO handle veyr long string > maxoffset
-        let insLocation = this.doc.getInsertLocation(pos)
+    insert(str, pos) { //TODO optimize, inserting and getting addId could be done in one step
+        if (this.doc.canBeAppended(str, pos, this.session))
+            this.doc.insertAppended(str, pos)
+        else if (this.doc.canBePrepended(str, pos, this.session))
+            this.doc.insertPrepended(str, pos)
+        else {
+            let char1 = this.doc.getCharAtPos(pos - 1)
+            let char2 = this.doc.getCharAtPos(pos)
+            ++this.clock
+            let newBase = this.generateBaseBetweenIds(char1.id.fullId, char2.id.fullId)
+            this.doc.insertNew(str, pos, newBase)
+        }
 
-        if(insLocation === insertLocation.DOC_MIDDLE)
-            this.insertInTheMiddle(str, pos)
-        else if(insLocation === insertLocation.DOC_END)
-            this.insertAtTheEnd(str)
-        else if(insLocation === insertLocation.DOC_BEG)
-            this.insertAtTheBegin(str)
+        let addId = this.doc.getCharAtPos(pos).id.copy
+        return new addCommandData(str, addId, this.session)
+    }
+
+    remove(fromPos, toPos){
+        let delIds = this.doc.getCharIds(fromPos, toPos)
+        this.doc.delChars(fromPos, toPos)
+
+        delIds = delIds.map(function(id){return id.copy})
+        return new delCommandData(delIds, this.session)
+    }
+
+    add(str, strId){
+        let insertPos = this.doc.getFirstPosWithBiggerIdThan(strId)
+        if(this.doc.canBeAppended(str, insertPos, strId.base.session))
+            this.doc.insertAppended(str, insertPos)
+        else if(this.doc.canBePrepended(str, insertPos, strId.base.session))
+            this.doc.insertPrepended(str, insertPos)
         else
-            this.insertFirstString(str)
+            this.doc.insertNew(str, insertPos, strId.base)
     }
 
-    insertFirstString(str) {
-        this.insertWithNewBase(str, 0, ID_MIN, ID_MAX)
-    }
-
-    insertAtTheBegin(str) {
-        if (this.canBePrepended(str, DOC_FIRST_POS))
-            this.doc.insertStringPrepended(str, DOC_FIRST_POS)
-        else
-            this.insertWithNewBase(str, DOC_FIRST_POS, ID_MIN, this.doc.firstChar.id)
-    }
-
-    insertInTheMiddle(str, pos) {
-        if(this.canBeAppended(str, pos))
-            this.doc.insertStringAppended(str, pos)
-        else if (this.canBePrepended(str, pos))
-            this.doc.insertStringPrepended(str, pos)
-        else
-            this.insertWithNewBase(str, pos, this.doc.getCharAtPos(pos - 1).id, this.doc.getCharAtPos(pos).id)
-    }
-
-    insertAtTheEnd(str) {
-        if (this.canBeAppended(str, this.doc.charsNum))
-            this.doc.insertStringAppended(str, this.doc.charsNum)
-        else
-            this.insertWithNewBase(str, this.doc.charsNum, this.doc.lastChar.id, ID_MAX)
-    }
-
-    insertWithNewBase(str, pos, idMin, idMax) {
-        let base = this.generateBaseBetweenIds(idMin, idMax)
-        this.doc.insertStringWithNewBase(str, pos, base)
+    del(ids){
+        this.doc.delCharsWithIds(ids)
     }
 
     generateBaseBetweenIds(idLow, idHigh) {
-        let newBase = ""
+        let base = new Base([], this.session, this.clock)
         let low = idLow[0]
         let high = idHigh[0]
 
-        for (let i = 1; getOffsetDifference(high, low) < 2; ++i) {
-            newBase += low
-            low = (i < idLow.length ? idLow[i] : ALPH_BLANK)
-            high = (i < idHigh.length ? idHigh[i] : ALPH_END)
+        for (let i = 1; high - low < 2; ++i) {
+            base.main.push(low)
+            low = (i < idLow.length ? idLow[i] : MIN_BASE_EL)
+            high = (i < idHigh.length ? idHigh[i] : MAX_BASE_EL)
         }
-        newBase += getRandomNonBlankAlphabetElementBetween(low, high)
-        return new Base(newBase) //TODO separator sessionId clock
+        base.main.push(this.getRandomElementBetween(low, high))
+        return base
     }
 
-    canBePrepended(str, pos) {
-        let anchorChar = this.doc.getCharAtPos(pos)
-        return this.isSameSession(this.sessionId, anchorChar.sessionId)
-            && this.isFirstInBase(pos)
-            && this.isEnoughSpaceBefore(str, pos)
+    getRandomElementBetween(low, high){
+        return Math.floor(Math.random() * (high - low + 1)) + low;
     }
-
-    canBeAppended(str, pos) {
-        let anchorChar = this.doc.getCharAtPos(pos - 1)
-        return this.isSameSession(this.sessionId, anchorChar.sessionId)
-            && this.isLastInBase(pos - 1)
-            && this.isEnoughSpaceAfter(str, pos - 1)
-    }
-
-    isSameSession(sessionId1, sessionId2) {
-        return true //TODO
-        //return sessionId1 === sessionId2
-    }
-
-    isFirstInBase(pos) {
-        return ! this.doc.areThereCharsWithSameBaseAndLowerOffset(pos)
-    }
-
-    isLastInBase(pos){
-        return ! this.doc.areThereCharsWithSameBaseAndHigherOffset(pos)
-    }
-
-    isEnoughSpaceBefore(str, pos) {
-        let anchorPointOffset = this.doc.getCharAtPos(pos).offset
-        return getOffsetDifference(anchorPointOffset, ALPH_BEG) > str.length //TODO not >= ?
-    }
-
-    isEnoughSpaceAfter(str, pos) {
-        let anchorPointOffset = this.doc.getCharAtPos(pos).offset
-        return getOffsetDifference(ALPH_END, anchorPointOffset) > str.length //TODO not >= ?
-    }
-
-
 }

@@ -1,25 +1,12 @@
-﻿const ALPHABET = "_abcdefghijklmnopqrstuvwxyz" // identifier is a sequence of ALPHABET elements
+const MIN_BASE_EL = 0
+const MAX_BASE_EL = Math.pow(2, 53) - 1
 
-const ALPH_BEG_POS = 1                         // elements [ALPH_BEG, ALPH_END] can be used on each id position
-const ALPH_END_POS = ALPHABET.length - 1
-const ALPH_BEG = ALPHABET[ALPH_BEG_POS]
-const ALPH_END = ALPHABET[ALPH_END_POS]
+const MIN_OFFSET = MIN_BASE_EL + 1
+const MAX_OFFSET = MAX_BASE_EL
+const FIRST_ASSIGNED_OFFSET = Math.floor(MAX_OFFSET/2)
 
-const ALPH_BLANK_POS = 0                        // element BLANK is used when generating new base between existing ids  
-const ALPH_BLANK = ALPHABET[ALPH_BLANK_POS]     // it can't be placed at the end of the identifier
-                                                // we assume that for each X,Y in [ALPH_BEG, ALPH_END]:  X < X_Y < XX
-                                         
-const ID_MIN = ALPHABET[ALPH_BEG_POS]           // used to generate first id base in document
-const ID_MAX = ALPHABET[ALPH_END_POS]
+// Char ID is represented by array of numbers, each of them in range [MIN_BASE_EL;MAX_BASE_EL]
+// Last element of char ID is called offset, others are called base
+// MIN_BASE_EL cannot be used as offset
+// When new base is generated, first char assigned to this base get offset FIRST_ASSIGNED_OFFSET, this value decide how much chars we can append and prepend to first char
 
-const insertLocation = {
-    EMPTY_DOC: 0,
-    DOC_BEG: 1,
-    DOC_MIDDLE: 2,
-    DOC_END: 3
-}
-
-const DOC_FIRST_POS = 0
-
-
-// TODO optimize ALPPHABET related operations
