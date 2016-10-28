@@ -21,16 +21,19 @@ class Algorithm {
     }
 
     insert(str, pos) { //TODO optimize, inserting and getting addId could be done in one step
+        let char1 = this.doc.getCharAtPos(pos - 1)
+        let char2 = this.doc.getCharAtPos(pos)
+
+        //bazy przechowuja max-min offset, jak to zsynchronizowac, 
+
         if (this.doc.canBeAppended(str, pos, this.session))
-            this.doc.insertAppended(str, pos)
+            this.doc.insertWithExistingBase(str, pos, char1.id.base, char1.id.offset + 1)
         else if (this.doc.canBePrepended(str, pos, this.session))
-            this.doc.insertPrepended(str, pos)
+            this.doc.insertWithExistingBase(str, pos, char2.id.base, char2.id.offset - 1)
         else {
-            let char1 = this.doc.getCharAtPos(pos - 1)
-            let char2 = this.doc.getCharAtPos(pos)
             ++this.clock
             let newBase = this.generateBaseBetweenIds(char1.id.fullId, char2.id.fullId)
-            this.doc.insertNew(str, pos, newBase)
+            this.doc.insertWithNewBase(str, pos, newBase)
         }
 
         let addId = this.doc.getCharAtPos(pos).id.copy
@@ -47,12 +50,12 @@ class Algorithm {
 
     add(str, strId){
         let insertPos = this.doc.getFirstPosWithBiggerIdThan(strId)
-        if(this.doc.canBeAppended(str, insertPos, strId.base.session))
-            this.doc.insertAppended(str, insertPos)
-        else if(this.doc.canBePrepended(str, insertPos, strId.base.session))
-            this.doc.insertPrepended(str, insertPos)
+        let base = this.doc.getSameBase(strId.base)
+
+        if(base !== null)
+            this.doc.insertWithExistingBase(str, insertPos, base, strId.offset)
         else
-            this.doc.insertNew(str, insertPos, strId.base)
+            this.doc.insertWithNewBase(str, insertPos, strId.base, strId.offset)
     }
 
     del(ids){

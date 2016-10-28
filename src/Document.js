@@ -80,6 +80,20 @@ class Document {
         this.bases = []
     }
 
+    insertWithExistingBase(str, pos, base, firstOffset){
+        let offset = firstOffset
+        for (let i = 0; i < str.length; ++i, ++offset, ++pos) {
+            let newId = new CharId(base, offset)
+            let newChar = new Char(str[i], newId)
+            this.chars.splice(pos, 0, newChar)
+        }
+    }
+
+    insertWithNewBase(str, pos, newBase, firstOffset = MIN_OFFSET){
+        this.addBase(newBase)
+        this.insertWithExistingBase(str, pos, newBase, firstOffset)
+    }
+
     canBeAppended(str, pos, session) {
         let char = this.chars[pos - 1]
         return session === char.id.base.session
@@ -87,45 +101,11 @@ class Document {
             && char.id.offset + str.length < MAX_BASE_EL
     }
 
-    insertAppended(str, pos) {
-        let charToWhichWeAppend = this.chars[pos - 1]
-        let base = charToWhichWeAppend.id.base
-        let offset = charToWhichWeAppend.id.offset + 1
-
-        for (let i = 0; i < str.length; ++i, ++pos, ++offset) {
-            let newId = new CharId(base, offset)
-            let newChar = new Char(str[i], newId)
-            this.chars.splice(pos, 0, newChar)
-        }
-    }
-
     canBePrepended(str, pos, session) {
         let char = this.chars[pos]
         return session === char.id.base.session
             && char.id.base.minUsedOffset == char.id.offset
             && char.id.offset - str.length > MIN_BASE_EL
-    }
-
-    insertPrepended(str, pos) {
-        let charToWhichWePrepend = this.chars[pos]
-        let base = charToWhichWePrepend.id.base
-        let offset = charToWhichWePrepend.id.offset - 1
-
-        for (let i = str.length - 1; i >= 0; --i, --offset) {
-            let newId = new CharId(base, offset)
-            let newChar = new Char(str[i], newId)
-            this.chars.splice(pos, 0, newChar)
-        }
-    }
-
-    insertNew(str, pos, base) {
-        let offset = FIRST_ASSIGNED_OFFSET
-        this.addBase(base)
-        for (let i = 0; i < str.length; ++i, ++offset, ++pos) {
-            let newId = new CharId(base, offset)
-            let newChar = new Char(str[i], newId)
-            this.chars.splice(pos, 0, newChar)
-        }
     }
 
     delChar(pos){
@@ -154,6 +134,13 @@ class Document {
 
     addBase(base) {
         this.bases.push(base)
+    }
+
+    getSameBase(base){
+        for(let i=0; i<this.bases.length; ++i)
+            if(base.isEqual(this.bases[i]))
+                return base
+        return null
     }
 
     getCharAtPos(pos) {
