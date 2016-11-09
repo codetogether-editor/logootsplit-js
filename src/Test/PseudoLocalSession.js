@@ -8,7 +8,7 @@
 
     insert(str, pos) {
         let addCommandData = this.alg.insert(str, pos)
-        this.server.emitAdd(addCommandData)
+        this.server.emitRemoteCommand(addCommandData, this)
     }
 
     add(str, strId) {
@@ -17,7 +17,7 @@
 
     remove(fromPos, toPos){
         let delCommandData = this.alg.remove(fromPos, toPos)
-        this.server.emitDel(delCommandData)
+        this.server.emitRemoteCommand(delCommandData, this)
     }
 
     del(ids){

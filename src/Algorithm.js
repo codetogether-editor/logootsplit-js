@@ -1,23 +1,9 @@
-class addCommandData{
-    constructor(str, id, session){
-        this.str = str
-        this.id = id
-        this.session = session
-    }
-}
-
-class delCommandData{
-    constructor(ids, session){
-        this.ids = ids
-        this.session = session
-    }
-}
-
 class Algorithm {
     constructor(doc, session) {
         this.doc = doc
         this.session = session
         this.clock = 0
+        this.idsOfCharsToDeleteLater = []
     }
 
     insert(str, pos) { //TODO optimize, inserting and getting addId could be done in one step
@@ -29,7 +15,7 @@ class Algorithm {
         if (this.doc.canBeAppended(str, pos, this.session))
             this.doc.insertWithExistingBase(str, pos, char1.id.base, char1.id.offset + 1)
         else if (this.doc.canBePrepended(str, pos, this.session))
-            this.doc.insertWithExistingBase(str, pos, char2.id.base, char2.id.offset - 1)
+            this.doc.insertWithExistingBase(str, pos, char2.id.base, char2.id.offset - str.length)
         else {
             ++this.clock
             let newBase = this.generateBaseBetweenIds(char1.id.fullId, char2.id.fullId)
@@ -37,7 +23,9 @@ class Algorithm {
         }
 
         let addId = this.doc.getCharAtPos(pos).id.copy
-        return new addCommandData(str, addId, this.session)
+        let remoteAddCommand = new RemoteCommand();
+        remoteAddCommand.makeAddCommand(str, addId, this.session)
+        return remoteAddCommand
     }
 
     remove(fromPos, toPos){
@@ -45,7 +33,9 @@ class Algorithm {
         this.doc.delChars(fromPos, toPos)
 
         delIds = delIds.map(function(id){return id.copy})
-        return new delCommandData(delIds, this.session)
+        let remoteDelCommand = new RemoteCommand();
+        remoteDelCommand.makeDelCommand(delIds, this.session);
+        return remoteDelCommand
     }
 
     add(str, strId){
@@ -56,10 +46,21 @@ class Algorithm {
             this.doc.insertWithExistingBase(str, insertPos, base, strId.offset)
         else
             this.doc.insertWithNewBase(str, insertPos, strId.base, strId.offset)
+
+        // if del request of str was recieved before add request of this str
+        // then ids of this string chars are stored in idsOfCharsToDeleteLater
+        // we have to check if now we can delete them
+
+        if(this.idsOfCharsToDeleteLater.length > 0){
+            this.idsOfCharsToDeleteLater = this.doc.delCharsWithIdsAndReturnNonExistentIds(
+                this.idsOfCharsToDeleteLater, insertPos, insertPos + str.length - 1)
+        }
     }
 
     del(ids){
-        this.doc.delCharsWithIds(ids)
+        let nonExistingIds = this.doc.delCharsWithIdsAndReturnNonExistentIds(ids)
+        if(nonExistingIds.length > 0)
+            this.idsOfCharsToDeleteLater = this.idsOfCharsToDeleteLater.concat(nonExistingIds) 
     }
 
     generateBaseBetweenIds(idLow, idHigh) {

@@ -1,34 +1,45 @@
-﻿class PseudoServer {
+﻿class RemoteCommandBuffer{
+    constructor(session, firstRemoteCmd){
+        this.session = session;
+        this.commands = []
+        this.commands.push(firstRemoteCmd);
+    }
+}
+
+class PseudoServer {
     constructor() {
         this.buffering = true
         this.sessions = []
         this.nextSessionId = 0
         this.remoteAddBuffer = []
         this.remoteDelBuffer = []
+        this.remoteCommandBuffers = []
     }
 
     createNewSession(sessionId) {
         this.sessions.push(new PseudoLocalSession(++this.nextSessionId, this))
     }
 
-    emitAdd(addData) {
-        if (this.buffering == false) {
+    emitRemoteCommand(command, senderSession){
+        if(this.buffering == false){
             for (let i = 0; i < this.sessions.length; ++i)
-                if (this.sessions[i].sessionId !== addData.session)
-                    this.sessions[i].add(addData.str, addData.id)
+                if (this.sessions[i].sessionId !== command.session){
+                    if(command.type = "add")
+                        this.sessions[i].add(command.str, command.id)
+                    else
+                        this.sessions[i].del(command.ids)
+                }
+        } else {
+            for(let i=0; i<this.remoteCommandBuffers.length; ++i)
+                if(this.remoteCommandBuffers[i].session === senderSession){
+                    this.remoteCommandBuffers[i].commands.push(command)
+                    return
+                }
+            this.remoteCommandBuffers.push(new RemoteCommandBuffer(senderSession, command))
         }
-        else
-            this.remoteAddBuffer.push(addData)
     }
 
-    emitDel(delData) {
-        if (this.buffering == false) {
-            for (let i = 0; i < this.sessions.length; ++i)
-                if (this.sessions[i].sessionId !== delData.session)
-                    this.sessions[i].del(delData.ids)
-        } else
-            this.remoteDelBuffer.push(delData)
-    }
+    
 
     emitRemoteBufferCommandsInRandomOrder() {
         this.buffering = false
@@ -52,5 +63,14 @@
 
         }
         this.buffering = true
+    }
+
+    emitAllBufferedCommands(){
+        this.buffering = false;
+        for(let i=0; i<this.remoteCommandBuffers.length; ++i){
+            for(let j=0; j<this.remoteCommandBuffers[i].commands.length; ++j)
+                this.emitRemoteCommand(this.remoteCommandBuffers[i].commands[j])
+        }
+        this.buffering = false;
     }
 }
