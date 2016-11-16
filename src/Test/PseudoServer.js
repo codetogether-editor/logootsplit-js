@@ -24,7 +24,7 @@ class PseudoServer {
         if(this.buffering == false){
             for (let i = 0; i < this.sessions.length; ++i)
                 if (this.sessions[i].sessionId !== command.session){
-                    if(command.type = "add")
+                    if(command.type == "add")
                         this.sessions[i].add(command.str, command.id)
                     else
                         this.sessions[i].del(command.ids)
