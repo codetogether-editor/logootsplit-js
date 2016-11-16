@@ -1,23 +1,40 @@
-function simulate(){
+const SESSIONS_COUNT = 3
+const COMMANDS_COUNT = 100
+const EXEC_MODES = ["RANDOM_SESSION", "ALL_SESSIONS"]
+const EXEC_MODE = "RANDOM_SESSION"
+const RANDOM = true;
+
+const ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const MAX_RANDOM_STR_LEN = 5
+
+var server, s = []; //server and its sessions
+
+function startRandomTest(){
+    createPseudoServerAndSessions()
+    executeLocalCommands()
+    sync()
+}
+
+function createPseudoServerAndSessions(){
     server = new PseudoServer()
-    s = []
-    for(let i=0; i<3; ++i){
+    for(let i=0; i<SESSIONS_COUNT; ++i){
         server.createNewSession(i)
         s.push(server.sessions[i])
     }
-    //executeCustomCommands()
-    executeRandomCommands(10, "mode2");
-    sync()
+}
 
+function executeLocalCommands(){
+    if(RANDOM)
+        executeRandomCommands(COMMANDS_COUNT, EXEC_MODE)
+    else
+        executeCustomCommands()
 }
 
 function executeCustomCommands(){
-    i(s[0],"abc", 1)
-    i(s[0],"def", 2)
-    i(s[0],"ghi", 4)
-    i(s[1],"ABC", 1)
-    i(s[1],"DEF", 1)
-    i(s[1],"GHI", 5)
+    i(s[0],"abcdef", 1)
+    r(s[0],3,5)
+    i(s[1],"ABCDEF", 1)
+    r(s[1],2,5)
 }
 
 // insert str at (existing) pos as session
@@ -90,8 +107,8 @@ function printIds(){
     }
 }
 
-function executeRandomCommands(cmdCount, mode = "mode1"){
-    if(mode == "mode1")
+function executeRandomCommands(cmdCount, mode = "RANDOM_SESSION"){
+    if(mode == "RANDOM_SESSION")
         for(let i=0; i<cmdCount; ++i){
             let currSession = getRandomSession()
             generateRandomValidCommand(currSession)
@@ -100,7 +117,6 @@ function executeRandomCommands(cmdCount, mode = "mode1"){
         for(let j=0; j<server.sessions.length; ++j)
             for(let i=0; i<cmdCount; ++i)
                 generateRandomValidCommand(server.sessions[j])
-
 }
 
 function generateRandomValidCommand(session){
@@ -113,7 +129,7 @@ function generateRandomValidCommand(session){
 }
 
 function generateRandomValidInsertCommand(session){
-    let str = getRandomStr()
+    let str = getRandomStr(MAX_RANDOM_STR_LEN)
     let pos = getRandomPos(session)
     session.insert(str, pos)
     console.log("S" + session.sessionId + " INSERTED " + str + " AT POS " + pos)
@@ -131,12 +147,10 @@ function getRandomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function getRandomStr(strLen = 3){
+function getRandomStr(strLen = 10){
     var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
     for( var i=0; i < strLen; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
+        text += ALLOWED_CHARS.charAt(Math.floor(Math.random() * ALLOWED_CHARS.length));
 
     return text;
 }
