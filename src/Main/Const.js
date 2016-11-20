@@ -1,6 +1,6 @@
 const MIN_BASE_EL = 0
 //const MAX_BASE_EL = Math.pow(2, 53) - 1
-const MAX_BASE_EL = 100
+const MAX_BASE_EL = 1000
 const MIN_OFFSET = MIN_BASE_EL + 1
 const MAX_OFFSET = MAX_BASE_EL
 const FIRST_ASSIGNED_OFFSET = Math.floor(MAX_OFFSET/2)

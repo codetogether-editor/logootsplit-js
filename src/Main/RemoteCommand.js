@@ -1,16 +1,16 @@
 class RemoteCommand{
     constructor(){}
 
-    makeAddCommand(str, id, session){
+    makeAddCommand(str, id, sessionId){
         this.type = "add"
         this.str = str
         this.id = id
-        this.session = session
+        this.sessionId = sessionId
     }
 
-    makeDelCommand(ids, session){
+    makeDelCommand(ids, sessionId){
         this.type = "del"
         this.ids = ids
-        this.session = session
+        this.sessionId = sessionId
     }
 }

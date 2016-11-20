@@ -1,5 +1,5 @@
-const DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL], 0, 0), MIN_OFFSET))
-const DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL], 0, 0), MAX_OFFSET))
+const DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL-1], MIN_BASE_EL-1, MIN_BASE_EL-1), MIN_OFFSET-1))
+const DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL+1], MAX_BASE_EL+1, MAX_BASE_EL+1), MAX_OFFSET+1))
 // At the beginning document contains two chars: DOC_BEG and DOC_END, they're not actual
 // text chars and are only used to represent start and end of the document
 
@@ -9,36 +9,71 @@ class Document {
         this.bases = []
     }
 
-    insertWithExistingBase(str, pos, base, firstOffset){
-        let offset = firstOffset
-        for (let i = 0; i < str.length; ++i, ++offset, ++pos) {
+    insertStrAppended(str, pos) {
+        logFunc("insertStrAppended", [str, pos])
+        let charWeAppendTo = this.chars[pos - 1];
+        let base = charWeAppendTo.id.base
+        let firstOffset = charWeAppendTo.id.offset + 1
+        this.insertStringWithExistingBase(str, pos, base, firstOffset)
+    }
+
+    insertStrPrepended(str, pos) {
+        logFunc("insertStrPrepended", [str, pos])
+        let charWePrependTo = this.chars[pos];
+        let base = charWePrependTo.id.base
+        let firstOffset = charWePrependTo.id.offset - str.length
+        this.insertStringWithExistingBase(str, pos, base, firstOffset)
+    }
+
+    insertStringWithExistingBase(str, pos, base, firstOffset = FIRST_ASSIGNED_OFFSET) { //optimize
+        logFunc("insertStrWithExistingBase", [str, pos, base, firstOffset])
+        this.insertStrAtPos(str, pos, base, firstOffset)
+        this.sortDocumentPart(1, this.chars.length - 1)
+    }
+
+    insertStringWithNewBase(str, pos, base){
+        logFunc("insertStrWithNewBase", [str, pos, base])
+        this.addBase(base)
+        this.insertStringWithExistingBase(str, pos, base)
+    }
+
+    insertStrAtPos(str, pos, base, firstCharOffset) {
+        logFunc("insertStrAtPos", [str, pos, base, firstCharOffset])
+        let offset = firstCharOffset
+        for (let char of str) {
             let newId = new CharId(base, offset)
-            let newChar = new Char(str[i], newId)
-            this.chars.splice(pos, 0, newChar)
+            let newChar = new Char(char, newId)
+            this.insertCharAtPos(newChar, pos)
+            ++pos
+            ++offset
         }
     }
 
-    insertWithNewBase(str, pos, newBase, firstOffset = FIRST_ASSIGNED_OFFSET){
-        this.addBase(newBase)
-        this.insertWithExistingBase(str, pos, newBase, firstOffset)
+    addChars(chars){
+        logFunc("addChars", [chars])
+        if(chars.length == 0)
+            return
+        let pos = this.getPosOfFirstCharWithBiggerId(chars[0].id)
+        for(let char of chars){
+            this.insertCharAtPos(char, pos)
+            ++pos
+        }
+        this.sortDocumentPart(1, this.chars.length - 1)
     }
 
-    canBeAppended(str, pos, session) {
-        let char = this.chars[pos - 1]
-        return session === char.id.base.session
-            && char.id.base.maxUsedOffset == char.id.offset
-            && char.id.offset + str.length < MAX_BASE_EL
+    sortDocumentPart(sortBeg, sortEnd) {
+        for (var pos = sortBeg + 1; pos <= sortEnd; ++pos) {
+            var temp = this.chars[pos];
+            var prevPos = pos - 1;
+            for (; prevPos >= 1 && this.chars[prevPos].id.isBigger(temp.id); --prevPos)
+                this.chars[prevPos + 1] = this.chars[prevPos];
+            this.chars[prevPos + 1] = temp;
+        }
     }
 
-    canBePrepended(str, pos, session) {
-        let char = this.chars[pos]
-        return session === char.id.base.session
-            && char.id.base.minUsedOffset == char.id.offset
-            && char.id.offset - str.length > MIN_BASE_EL
-    }
-
-    delChar(pos){
-        this.chars.splice(pos, 1)
+    addBase(base){
+        logFunc("addBase", [base])
+        this.bases.push(base)
     }
 
     delChars(fromPos, toPos) {
@@ -46,47 +81,30 @@ class Document {
             this.delChar(pos)
     }
 
-    delCharsWithIdsAndReturnNonExistentIds(ids, delRangeBeg = null, delRangeEnd = null) { //TODO optimize, maybe with dichotomic search
-        if(delRangeBeg == null)
-            delRangeBeg = 0
-        if(delRangeEnd == null)
-            delRangeEnd = this.chars.length-2
-
-        for(let i=delRangeEnd; i>delRangeBeg; --i){
-            for(let j=ids.length-1; j>=0; --j){
-                if(this.chars[i].id.isEqual(ids[j])){
-                    this.delChar(i)
-                    ids.pop()
-                    if(ids.length === 0)
-                        return []
-                    if(i === delRangeBeg + 1 && ids.length > 0)
-                        return ids
-                    break
-                }
-            }
-        }
+    delChar(pos){
+        this.chars.splice(pos, 1)
     }
 
-    addBase(base) {
-        this.bases.push(base)
-    }
-
-    getSameBase(base){
-        for(let i=0; i<this.bases.length; ++i)
-            if(base.isEqual(this.bases[i]))
-                return base
+    getPosOfCharWithId(id){ 
+        for(let pos=0; pos<this.chars.length; ++pos)
+            if(this.chars[pos].id.isEqual(id))
+                return pos
         return null
     }
 
-    existBase(base){
-        for(let i=0; i<this.chars.length; ++i)
-            if(this.chars[i].id.base.isEqual(base))
-                return true
-        return true
+    getPosOfFirstCharWithBiggerId(charId) {
+        for (let pos = 1; pos < this.chars.length; ++pos)
+            if (this.chars[pos].id.isBigger(charId))
+                return pos
+        return null
     }
 
     getCharAtPos(pos) {
         return this.chars[pos]
+    }
+
+    getIdOfCharAtPos(pos) {
+        return this.chars[pos].id
     }
 
     getCharIds(fromPos, toPos) {
@@ -95,20 +113,20 @@ class Document {
             ids.push(this.chars[i].id)
         return ids;
     }
-
-    getFirstPosWithBiggerIdThan(id) {
-        for (let pos = 1; pos < this.chars.length; ++pos)
-            if (this.chars[pos].id.isBigger(id))
-                return pos
+    getSameBase(base){
+        for(let b of this.bases)
+            if(base.isEqual(b))
+                return b
         return null
     }
 
-    getLastPosWithLowerIdThan(id) {
-        let pos = 0
-        for (let newPos = 1; newPos < this.chars.length; ++newPos)
-            if (id.isBigger(this.chars[pos].id))
-                pos = newPos
-        return pos
+    insertCharAtPos(char, pos) {
+        logFunc("insertCharAtPos", [char, pos])
+        this.chars.splice(pos, 0, char)
+    }
+
+    isEmpty() {
+        return this.chars.length == 2
     }
 
     get text() {

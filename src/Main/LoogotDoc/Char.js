@@ -1,7 +1,7 @@
 class Char {
-    constructor(value, charId) {
+    constructor(value, id) {
         this.value = value
-        this.id = charId
+        this.id = id
     }
 
     isEqual(otherChar) {

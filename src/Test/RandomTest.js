@@ -1,164 +1,195 @@
-const SESSIONS_COUNT = 3
-const COMMANDS_COUNT = 100
-const EXEC_MODES = ["RANDOM_SESSION", "ALL_SESSIONS"]
-const EXEC_MODE = "RANDOM_SESSION"
-const RANDOM = true;
+const NUM_OF_TESTS = 100
+const NUM_OF_SESSIONS = 3
+const MIN_NUM_OF_COMMANDS = 20
+const USE_REAL_SENTENCES = true
+const TESTED_CMD_TYPES = ["INSERT", "REMOVE", "BUFFERED"]
 
-const ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const MAX_RANDOM_STR_LEN = 5
+const TEST_UNTIL_FAIL = false
+const STOP_ON_FAIL = true
 
-var server, s = []; //server and its sessions
+const RANDOM_STR_VALID_CHARS = "abcdefghijklmnopqrstuvwxyz";
+const MAX_RANDOM_STR_LEN = 100
+const MAX_REMOVE_LENGTH = 100
 
-function startRandomTest(){
-    createPseudoServerAndSessions()
-    executeLocalCommands()
-    sync()
+const CLEAR_CONSOLE_AFTER_SUCCESS = false
+
+var sessions = []
+var testNum = 0
+var successes = 0
+
+function start(numOfTests){
+    TEST_UNTIL_FAIL ? startRandomTestingUntilFail() : startRandomTesting(numOfTests);
 }
 
-function createPseudoServerAndSessions(){
-    server = new PseudoServer()
-    for(let i=0; i<SESSIONS_COUNT; ++i){
-        server.createNewSession(i)
-        s.push(server.sessions[i])
+function startRandomTesting(numOfTests = NUM_OF_TESTS) {
+
+    for (let i = 0; i < numOfTests; ++i){
+        let currentSuccesses = successes
+        startRandomTest()
+        if(successes == currentSuccesses && STOP_ON_FAIL)
+            return;
     }
 }
 
-function executeLocalCommands(){
-    if(RANDOM)
-        executeRandomCommands(COMMANDS_COUNT, EXEC_MODE)
-    else
-        executeCustomCommands()
-}
-
-function executeCustomCommands(){
-    i(s[0],"abcdef", 1)
-    r(s[0],3,5)
-    i(s[1],"ABCDEF", 1)
-    r(s[1],2,5)
-}
-
-// insert str at (existing) pos as session
-function i(session, str, pos){
-    session.insert(str, pos)
-    printDocs()
-}
-
-//remove chars from (existing) range [fromPos;toPos] as session
-function r(session, fromPos, toPos){
-    session.remove(fromPos, toPos)
-    printDocs()
-}
-
-function sync(){
-    server.emitAllBufferedCommands()
-    console.log('sync');
-    printDocs()
-    showSyncResult()
-}
-
-function showSyncResult(){
-    let success = true
-    for(let i=0; i<server.sessions.length-1; ++i)
-        if(server.sessions[i].doc.textTest != server.sessions[i+1].doc.textTest){
-            console.log("FAIL("+(i+1)+","+(i+2)+")")
-            success = false;
-        }
-    if(success)
-        console.log("SUCCESS");
-
-}
-
-function compareDocs(s1index, s2index){
-    let s1chars = server.sessions[s1index].doc.chars;
-    let s2chars = server.sessions[s2index].doc.chars;
-    let fail = false;
-    let failIndexes = []
-
-    for(let i=1; i<s1chars.length-1; ++i)
-        if(!s1chars[i].isEqual(s2chars[i])){
-            fail = true;
-            failIndexes.push(i)
-        }
-    if(fail)
-        console.log("COMP FAIL AT INDEXES " + failIndexes)
-    else
-        console.log("COMPARE DOCS SUCCESS")
-}
-
-function printDocs(){
-    for(let i=0; i<server.sessions.length; ++i){
-        console.log(server.sessions[i].sessionId, server.sessions[i].doc.textTest)
+function startRandomTestingUntilFail(){
+    while(1){
+        let currentSuccesses = successes
+        startRandomTest()
+        if(successes == currentSuccesses)
+            return;
     }
 }
 
-function printIds(){
-    for(let i=0; i<server.sessions.length; ++i){
-        let session = server.sessions[i]
-        let idString = session.sessionId + " "
-        for(let i=1; i<session.doc.chars.length-1; ++i){
-            idString += "("
-            let fullId = session.doc.chars[i].id.fullId
-            let currId = ""
-            for(let j=0; j<fullId.length; ++j)
-                currId += fullId[j] + ", "
-            idString += (currId + ")  " )
-        }
-        console.log(idString)
+function startRandomTest() {
+    resetEverything()
+    console.log("TEST ", ++testNum)
+    executeRandomCmds()
+    if(areAllDocumentsSame()){
+        ++successes
+        if(CLEAR_CONSOLE_AFTER_SUCCESS)
+            console.clear()
+    }
+    else
+        console.log("FAIL")
+
+    showResults()
+}
+
+function resetEverything() {
+    sessions = []
+    for (let i = 1; i <= NUM_OF_SESSIONS; ++i)
+        sessions.push(new PseudoSession(i))
+}
+
+function executeRandomCmds() {
+    executeMinNumOfRandomCmds()
+    executeBufferedCmds()
+}
+
+function executeMinNumOfRandomCmds() {
+    let session, possibleCmds;
+    for (let i = 0; i < MIN_NUM_OF_COMMANDS; ++i) {
+        session = getRandomItem(sessions)
+        possibleCmds = getPossibleCmds(session)
+        executeRandomCmd(session, possibleCmds)
     }
 }
 
-function executeRandomCommands(cmdCount, mode = "RANDOM_SESSION"){
-    if(mode == "RANDOM_SESSION")
-        for(let i=0; i<cmdCount; ++i){
-            let currSession = getRandomSession()
-            generateRandomValidCommand(currSession)
-        }
-    else
-        for(let j=0; j<server.sessions.length; ++j)
-            for(let i=0; i<cmdCount; ++i)
-                generateRandomValidCommand(server.sessions[j])
+function getPossibleCmds(session){
+    let possibleCmds = ["INSERT"]
+    if(session.isRemovePossible() && TESTED_CMD_TYPES.includes("REMOVE"))
+        possibleCmds.push("REMOVE")
+    if(!session.isRemoteCmdBufferEmpty() && TESTED_CMD_TYPES.includes("BUFFERED"))
+        possibleCmds.push("BUFFERED")
+    return possibleCmds
 }
 
-function generateRandomValidCommand(session){
-    generateRandomValidInsertCommand(session)
-    /*
-    if(generateRandomCommandType() == "insert")
-        return generateRandomValidInsertCommand(session)
-    else
-        return generateRandomValidRemoveCommand(session)*/
+
+function executeBufferedCmds(){
+    for(let session of sessions)
+        while(!session.isRemoteCmdBufferEmpty())
+            executeRandomCmd(session, ["BUFFERED"])
 }
 
-function generateRandomValidInsertCommand(session){
-    let str = getRandomStr(MAX_RANDOM_STR_LEN)
-    let pos = getRandomPos(session)
-    session.insert(str, pos)
-    console.log("S" + session.sessionId + " INSERTED " + str + " AT POS " + pos)
-    printDocs()
+
+function resetEverything() {
+    sessions = []
+    for (let i = 1; i <= NUM_OF_SESSIONS; ++i)
+        sessions.push(new PseudoSession(i))
 }
 
-function getRandomCommandType(session){
-    if(session.doc.chars.length < 3 || getRandomInt(0,1) === 0)
-        return "insert"
+function executeRandomCmd(session, possibleCmds){
+    let cmdType = getRandomItem(possibleCmds)
+    if(cmdType == "INSERT")
+        executeRandomInsertCmd(session)
+    else if(cmdType == "REMOVE")
+        executeRandomRemoveCmd(session)
     else
-        return "remove"
+        executeRandomBufferedCmd(session)
+}
+
+function executeRandomInsertCmd(session) {
+    let str = USE_REAL_SENTENCES ? getRandomSentence() : getRandomStr()
+    let pos = getRandomInsPos(session)
+    let returnedAddCmd = session.insert(str, pos)
+    addToSessionBuffersRemoteCmdGeneratedBySession(returnedAddCmd, session);
+}
+
+function executeRandomRemoveCmd(session) {
+    let pos1 = getRandomRemovePos(session)
+    let pos2 = getRandomRemovePos(session)
+    let fromPos = Math.min(pos1, pos2)
+    let toPos = Math.max(pos1, pos2)
+
+    if(fromPos - toPos > MAX_REMOVE_LENGTH - 1)
+        toPos = fromPos + MAX_REMOVE_LENGTH - 1
+    
+    let returnedDelCmd = session.remove(fromPos, toPos)
+    addToSessionBuffersRemoteCmdGeneratedBySession(returnedDelCmd, session);
+}
+
+function addToSessionBuffersRemoteCmdGeneratedBySession(cmd, sessionWhichGeneratedCmd){
+    for(let sess of sessions)
+        if(sess != sessionWhichGeneratedCmd)
+            sess.addRemoteCmdToBuffer(cmd)
+}
+
+function executeRandomBufferedCmd(session) {
+    let cmds = session.remoteCmdBuffer
+    for(let i=0; i<cmds.length; ++i)
+        session.executeBufferedCmd(getRandomIndex(cmds))
+}
+
+function areAllDocumentsSame() {
+    for(let session1 of sessions)
+        for(let session2 of sessions)
+            if(session1.doc.textTest != session2.doc.textTest)
+                return false
+    return true
+}
+
+function getRandomStr(){
+    var text = "";
+    var length = getRandomInt(1, MAX_RANDOM_STR_LEN)
+    for( var i=0; i < length; i++ )
+        text += getRandomChar()
+    return text;
+}
+
+function getRandomChar(){
+    return RANDOM_STR_VALID_CHARS.charAt(Math.floor(Math.random() * RANDOM_STR_VALID_CHARS.length));
 }
 
 function getRandomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function getRandomStr(strLen = 10){
-    var text = "";
-    for( var i=0; i < strLen; i++ )
-        text += ALLOWED_CHARS.charAt(Math.floor(Math.random() * ALLOWED_CHARS.length));
-
-    return text;
-}
-
-function getRandomPos(session){
+function getRandomInsPos(session){
     return getRandomInt(1, session.doc.chars.length - 1)
 }
 
-function getRandomSession(){
-    return s[getRandomInt(0, s.length - 1)]
+function getRandomRemovePos(session){
+    return getRandomInt(1, session.doc.chars.length - 2)
+}
+
+function getRandomIndex(array){
+    let len = array.length
+    return len > 0 ? getRandomInt(0, len - 1) : null
+}
+
+function getRandomItem(array){
+    let randIndex = getRandomIndex(array)
+    return randIndex != null ? array[randIndex] : null
+}
+
+function getRandomSentence(){
+    return this.getRandomItem(RANDOM_SENTENCES)
+}
+
+function showResults(){
+    if(TEST_UNTIL_FAIL)
+        logResults(testNum - 1, testNum)
+    else
+        logResults(successes, NUM_OF_TESTS)
+
 }
