@@ -1,4 +1,4 @@
-class Base {
+export default class Base {
     constructor(main, sessionId, clock) {
         this.main = main
         this.sessionId = sessionId

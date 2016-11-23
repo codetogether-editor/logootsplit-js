@@ -1,4 +1,4 @@
-class RemoteCommand{
+export default class RemoteCommand{
     constructor(){}
 
     makeAddCommand(str, id, sessionId){

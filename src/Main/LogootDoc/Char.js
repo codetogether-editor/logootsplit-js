@@ -1,4 +1,4 @@
-class Char {
+export default class Char {
     constructor(value, id) {
         this.value = value
         this.id = id

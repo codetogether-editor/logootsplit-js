@@ -1,4 +1,10 @@
-class Algorithm {
+import Base from './LogootDoc/Base';
+import CharId from './LogootDoc/CharId';
+import Char from './LogootDoc/Char';
+import Document from './LogootDoc/Document';
+import RemoteCommand from './RemoteCommand';
+
+export default class Algorithm {
     constructor(doc, sessionId) {
         this.doc = doc
         this.sessionId = sessionId
@@ -81,14 +87,15 @@ class Algorithm {
         return this.isSameSession(charWeAppendTo)
             && this.isHighestOffsetInBase(charWeAppendTo)
             && this.isSpaceInBaseAfter(charWeAppendTo, str.length)
-            && this.BETA(str, pos) //todo 
+            && this.isNotGoingToOverlapAfterApp(str, pos)
     }
 
-    BETA(str, pos){
-        let idNext = this.doc.getIdOfCharAtPos(pos)
-        let idInsert = this.doc.getIdOfCharAtPos(pos - 1).copy
-        idInsert.offset++
-        return this.numberOfInsertableCharaters(idInsert, idNext, str.length) > 0 
+    isNotGoingToOverlapAfterApp(str, pos){
+        let prevCharId = this.doc.getIdOfCharAtPos(pos-1)
+        let nextCharId = this.doc.getIdOfCharAtPos(pos)
+        let lastIdOfAppStr = prevCharId.copy
+        lastIdOfAppStr.offset += str.length
+        return !lastIdOfAppStr.isBigger(nextCharId)
     }
 
     canInsertPrepended(str, pos){
@@ -96,6 +103,15 @@ class Algorithm {
         return this.isSameSession(charWePrependTo)
             && this.isLowestOffsetInBase(charWePrependTo)
             && this.isSpaceInBaseBefore(charWePrependTo, str.length)
+            && this.isNotGoingToOverlapAfterPrep(str, pos)
+    }
+    
+    isNotGoingToOverlapAfterPrep(str, pos){
+        let prevCharId = this.doc.getIdOfCharAtPos(pos-1)
+        let nextCharId = this.doc.getIdOfCharAtPos(pos)
+        let firstIdOfPrepStr = nextCharId.copy
+        firstIdOfPrepStr.offset -= str.length
+        return !prevCharId.isBigger(firstIdOfPrepStr)
     }
 
     isSameSession(char){

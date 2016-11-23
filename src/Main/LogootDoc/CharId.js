@@ -1,4 +1,4 @@
-class CharId {
+export default class CharId {
     constructor(base, offset) {
         this.base = base
         this.offset = offset

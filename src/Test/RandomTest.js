@@ -1,15 +1,15 @@
 const NUM_OF_TESTS = 100
 const NUM_OF_SESSIONS = 3
-const MIN_NUM_OF_COMMANDS = 20
+const MIN_NUM_OF_COMMANDS = 2
 const USE_REAL_SENTENCES = true
-const TESTED_CMD_TYPES = ["INSERT", "REMOVE", "BUFFERED"]
+const TESTED_CMD_TYPES = ["INSERT"]
 
 const TEST_UNTIL_FAIL = false
 const STOP_ON_FAIL = true
 
 const RANDOM_STR_VALID_CHARS = "abcdefghijklmnopqrstuvwxyz";
-const MAX_RANDOM_STR_LEN = 100
-const MAX_REMOVE_LENGTH = 100
+const MAX_RANDOM_STR_LEN = 1
+const MAX_REMOVE_LENGTH = 1
 
 const CLEAR_CONSOLE_AFTER_SUCCESS = false
 

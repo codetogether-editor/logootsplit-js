@@ -1,9 +1,14 @@
-const DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL-1], MIN_BASE_EL-1, MIN_BASE_EL-1), MIN_OFFSET-1))
-const DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL+1], MAX_BASE_EL+1, MAX_BASE_EL+1), MAX_OFFSET+1))
+import Base from './Base';
+import CharId from './CharId';
+import Char from './Char';
+
 // At the beginning document contains two chars: DOC_BEG and DOC_END, they're not actual
 // text chars and are only used to represent start and end of the document
 
-class Document {
+        var DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL-1], MIN_BASE_EL-1, MIN_BASE_EL-1), MIN_OFFSET-1))
+        var DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL+1], MAX_BASE_EL+1, MAX_BASE_EL+1), MAX_OFFSET+1))
+
+export default class Document {
     constructor() {
         this.chars = [DOC_BEG, DOC_END]
         this.bases = []
