@@ -84,6 +84,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _Algorithm2 = _interopRequireDefault(_Algorithm);
 	
+	var _DocumentChanger = __webpack_require__(8);
+	
+	var _DocumentChanger2 = _interopRequireDefault(_DocumentChanger);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	window.Base = _Base2.default;
@@ -92,6 +96,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	window.Char = _Char2.default;
 	window.Document = _Document2.default;
 	window.Algorithm = _Algorithm2.default;
+	window.DocumentChanger = _DocumentChanger2.default;
 
 /***/ },
 /* 1 */
@@ -350,7 +355,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    _createClass(Document, [{
 	        key: 'insertStrAppended',
 	        value: function insertStrAppended(str, pos) {
-	            logFunc("insertStrAppended", [str, pos]);
 	            var charWeAppendTo = this.chars[pos - 1];
 	            var base = charWeAppendTo.id.base;
 	            var firstOffset = charWeAppendTo.id.offset + 1;
@@ -359,7 +363,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'insertStrPrepended',
 	        value: function insertStrPrepended(str, pos) {
-	            logFunc("insertStrPrepended", [str, pos]);
 	            var charWePrependTo = this.chars[pos];
 	            var base = charWePrependTo.id.base;
 	            var firstOffset = charWePrependTo.id.offset - str.length;
@@ -370,21 +373,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	        value: function insertStringWithExistingBase(str, pos, base) {
 	            var firstOffset = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : FIRST_ASSIGNED_OFFSET;
 	            //optimize
-	            logFunc("insertStrWithExistingBase", [str, pos, base, firstOffset]);
 	            this.insertStrAtPos(str, pos, base, firstOffset);
-	            this.sortDocumentPart(1, this.chars.length - 1);
+	            //this.sortDocumentPart(1, this.chars.length - 1) //VERIFY CHANGE
+	            this.sortDocumentPart(pos, this.chars.length - 1);
 	        }
 	    }, {
 	        key: 'insertStringWithNewBase',
 	        value: function insertStringWithNewBase(str, pos, base) {
-	            logFunc("insertStrWithNewBase", [str, pos, base]);
 	            this.addBase(base);
 	            this.insertStringWithExistingBase(str, pos, base);
 	        }
 	    }, {
 	        key: 'insertStrAtPos',
 	        value: function insertStrAtPos(str, pos, base, firstCharOffset) {
-	            logFunc("insertStrAtPos", [str, pos, base, firstCharOffset]);
 	            var offset = firstCharOffset;
 	            var _iteratorNormalCompletion = true;
 	            var _didIteratorError = false;
@@ -416,38 +417,41 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	        }
 	    }, {
-	        key: 'addChars',
-	        value: function addChars(chars) {
-	            logFunc("addChars", [chars]);
+	        key: 'addCharsAndGetChanges',
+	        value: function addCharsAndGetChanges(chars) {
+	            var changes = [];
 	            if (chars.length == 0) return;
-	            var pos = this.getPosOfFirstCharWithBiggerId(chars[0].id);
-	            var _iteratorNormalCompletion2 = true;
-	            var _didIteratorError2 = false;
-	            var _iteratorError2 = undefined;
+	            var pos0 = this.getPosOfFirstCharWithBiggerId(chars[0].id);
+	            var prevUsedPos = null;
+	            var changeStr = "";
 	
-	            try {
-	                for (var _iterator2 = chars[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	                    var char = _step2.value;
-	
-	                    this.insertCharAtPos(char, pos);
-	                    ++pos;
+	            for (var i = chars.length - 1; i >= 0; --i) {
+	                var pos = this.getPosOfFirstCharWithBiggerIdStartingFrom(chars[i].id, pos0);
+	                if (prevUsedPos === pos || changeStr === "") {
+	                    changeStr = chars[i].value + changeStr;
+	                } else {
+	                    var change = { type: "add", string: changeStr, position: this.getCoordPos(prevUsedPos) };
+	                    changes.push(change);
+	                    changeStr = chars[i].value;
 	                }
-	            } catch (err) {
-	                _didIteratorError2 = true;
-	                _iteratorError2 = err;
-	            } finally {
-	                try {
-	                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-	                        _iterator2.return();
-	                    }
-	                } finally {
-	                    if (_didIteratorError2) {
-	                        throw _iteratorError2;
-	                    }
-	                }
+	                if (i == 0 && changeStr !== "") changes.push({ type: "add", string: changeStr, position: this.getCoordPos(pos) });
+	                this.insertCharAtPos(chars[i], pos);
+	                prevUsedPos = pos;
 	            }
 	
-	            this.sortDocumentPart(1, this.chars.length - 1);
+	            return changes;
+	        }
+	    }, {
+	        key: 'getCoordPos',
+	        value: function getCoordPos(pos) {
+	            var line = 0;
+	            var column = 0;
+	            for (var i = pos - 1; this.chars[i].value != '\n' && i > 0; --i) {
+	                column++;
+	            }
+	            for (var _i = 1; _i < pos; ++_i) {
+	                if (this.chars[_i].value == "\n") line++;
+	            }return { line: line, column: column };
 	        }
 	    }, {
 	        key: 'sortDocumentPart',
@@ -463,7 +467,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'addBase',
 	        value: function addBase(base) {
-	            logFunc("addBase", [base]);
 	            this.bases.push(base);
 	        }
 	    }, {
@@ -493,6 +496,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }return null;
 	        }
 	    }, {
+	        key: 'getPosOfFirstCharWithBiggerIdStartingFrom',
+	        value: function getPosOfFirstCharWithBiggerIdStartingFrom(charId, startPos) {
+	            for (var pos = startPos; pos < this.chars.length; ++pos) {
+	                if (this.chars[pos].id.isBigger(charId)) return pos;
+	            }return null;
+	        }
+	    }, {
 	        key: 'getCharAtPos',
 	        value: function getCharAtPos(pos) {
 	            return this.chars[pos];
@@ -513,27 +523,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'getSameBase',
 	        value: function getSameBase(base) {
-	            var _iteratorNormalCompletion3 = true;
-	            var _didIteratorError3 = false;
-	            var _iteratorError3 = undefined;
+	            var _iteratorNormalCompletion2 = true;
+	            var _didIteratorError2 = false;
+	            var _iteratorError2 = undefined;
 	
 	            try {
-	                for (var _iterator3 = this.bases[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var b = _step3.value;
+	                for (var _iterator2 = this.bases[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	                    var b = _step2.value;
 	
 	                    if (base.isEqual(b)) return b;
 	                }
 	            } catch (err) {
-	                _didIteratorError3 = true;
-	                _iteratorError3 = err;
+	                _didIteratorError2 = true;
+	                _iteratorError2 = err;
 	            } finally {
 	                try {
-	                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	                        _iterator3.return();
+	                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+	                        _iterator2.return();
 	                    }
 	                } finally {
-	                    if (_didIteratorError3) {
-	                        throw _iteratorError3;
+	                    if (_didIteratorError2) {
+	                        throw _iteratorError2;
 	                    }
 	                }
 	            }
@@ -543,13 +553,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'insertCharAtPos',
 	        value: function insertCharAtPos(char, pos) {
-	            logFunc("insertCharAtPos", [char, pos]);
 	            this.chars.splice(pos, 0, char);
 	        }
 	    }, {
 	        key: 'isEmpty',
 	        value: function isEmpty() {
 	            return this.chars.length == 2;
+	        }
+	    }, {
+	        key: 'getAsLines',
+	        value: function getAsLines() {
+	            var lines = [];
+	            var line = [];
+	            for (var i = 1; i < this.chars.length - 1; ++i) {
+	                line.push(this.chars[i]);
+	                if (this.chars[i].value == '\n' || i == this.chars.length - 2) lines.push(line);
+	            }
+	            return lines;
 	        }
 	    }, {
 	        key: 'text',
@@ -632,10 +652,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'add',
 	        value: function add(str, strId) {
-	
 	            var chars = this.createCharsFromStr(str, strId);
-	            logFunc("add", [str, strId], [this.idsOfCharsToDeleteLater, chars]);
-	
 	            for (var i = chars.length - 1; i >= 0; --i) {
 	                for (var j = this.idsOfCharsToDeleteLater.length - 1; j >= 0; --j) {
 	                    if (chars[i].id.isEqual(this.idsOfCharsToDeleteLater[j])) {
@@ -645,12 +662,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    }
 	                }
 	            }
-	            this.doc.addChars(chars);
+	            var changes = this.doc.addCharsAndGetChanges(chars);
+	            return changes;
 	        }
 	    }, {
 	        key: 'remove',
 	        value: function remove(fromPos, toPos) {
-	            logFunc("remove", [fromPos, toPos]);
 	            var delIds = this.doc.getCharIds(fromPos, toPos);
 	            var delIdsCopy = delIds.map(function (id) {
 	                return id.copy;
@@ -662,7 +679,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        key: 'del',
 	        value: function del(ids) {
 	            //optimize eg. if consecutive ids then obtain range (pos, pos+length-1)
-	            logFunc("del", [ids]);
 	            var _iteratorNormalCompletion = true;
 	            var _didIteratorError = false;
 	            var _iteratorError = undefined;
@@ -833,6 +849,90 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = Algorithm;
+	module.exports = exports['default'];
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _Base = __webpack_require__(3);
+	
+	var _Base2 = _interopRequireDefault(_Base);
+	
+	var _CharId = __webpack_require__(4);
+	
+	var _CharId2 = _interopRequireDefault(_CharId);
+	
+	var _Char = __webpack_require__(5);
+	
+	var _Char2 = _interopRequireDefault(_Char);
+	
+	var _Document = __webpack_require__(6);
+	
+	var _Document2 = _interopRequireDefault(_Document);
+	
+	var _RemoteCommand = __webpack_require__(2);
+	
+	var _RemoteCommand2 = _interopRequireDefault(_RemoteCommand);
+	
+	var _DocumentChanger = __webpack_require__(8);
+	
+	var _DocumentChanger2 = _interopRequireDefault(_DocumentChanger);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var DocumentChanger = function () {
+	    function DocumentChanger(algorithm, editor) {
+	        _classCallCheck(this, DocumentChanger);
+	
+	        this.algorithm = algorithm;
+	        this.editor = editor;
+	        this.doc = algorithm.doc;
+	        this.sessionId = algorithm.sessionId;
+	        this.lines = this.doc.getAsLines();
+	    }
+	
+	    _createClass(DocumentChanger, [{
+	        key: 'performInsertAndGetAddCmd',
+	        value: function performInsertAndGetAddCmd(str, line, column) {
+	            var pos = this.convertToAbsolutePos(line, column);
+	            var addCmd = this.algorithm.insert(str, pos);
+	            return addCmd;
+	        }
+	    }, {
+	        key: 'addAndGetChanges',
+	        value: function addAndGetChanges(str, strId) {
+	            var changes = this.algorithm.add(str, strId);
+	            //for(let c of changes)
+	            //    console.log(c.type, c.string, c.position.line, c.position.column)
+	            return changes;
+	        }
+	    }, {
+	        key: 'convertToAbsolutePos',
+	        value: function convertToAbsolutePos(line, column) {
+	            var pos = 0;
+	            var realDoc = this.editor.getSession().getDocument();
+	
+	            if (line > 0) for (var i = 0; i < line; ++i) {
+	                pos += realDoc.getLine(i).length;
+	            }return pos + line + column + 1;
+	        }
+	    }]);
+	
+	    return DocumentChanger;
+	}();
+	
+	exports.default = DocumentChanger;
 	module.exports = exports['default'];
 
 /***/ }

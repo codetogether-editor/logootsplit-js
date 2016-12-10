@@ -5,8 +5,8 @@ import Char from './Char';
 // At the beginning document contains two chars: DOC_BEG and DOC_END, they're not actual
 // text chars and are only used to represent start and end of the document
 
-        var DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL-1], MIN_BASE_EL-1, MIN_BASE_EL-1), MIN_OFFSET-1))
-        var DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL+1], MAX_BASE_EL+1, MAX_BASE_EL+1), MAX_OFFSET+1))
+var DOC_BEG = new Char(null, new CharId(new Base([MIN_BASE_EL - 1], MIN_BASE_EL - 1, MIN_BASE_EL - 1), MIN_OFFSET - 1))
+var DOC_END = new Char(null, new CharId(new Base([MAX_BASE_EL + 1], MAX_BASE_EL + 1, MAX_BASE_EL + 1), MAX_OFFSET + 1))
 
 export default class Document {
     constructor() {
@@ -15,7 +15,6 @@ export default class Document {
     }
 
     insertStrAppended(str, pos) {
-        logFunc("insertStrAppended", [str, pos])
         let charWeAppendTo = this.chars[pos - 1];
         let base = charWeAppendTo.id.base
         let firstOffset = charWeAppendTo.id.offset + 1
@@ -23,7 +22,6 @@ export default class Document {
     }
 
     insertStrPrepended(str, pos) {
-        logFunc("insertStrPrepended", [str, pos])
         let charWePrependTo = this.chars[pos];
         let base = charWePrependTo.id.base
         let firstOffset = charWePrependTo.id.offset - str.length
@@ -31,19 +29,17 @@ export default class Document {
     }
 
     insertStringWithExistingBase(str, pos, base, firstOffset = FIRST_ASSIGNED_OFFSET) { //optimize
-        logFunc("insertStrWithExistingBase", [str, pos, base, firstOffset])
         this.insertStrAtPos(str, pos, base, firstOffset)
-        this.sortDocumentPart(1, this.chars.length - 1)
+        //this.sortDocumentPart(1, this.chars.length - 1) //VERIFY CHANGE
+        this.sortDocumentPart(pos, this.chars.length - 1)
     }
 
-    insertStringWithNewBase(str, pos, base){
-        logFunc("insertStrWithNewBase", [str, pos, base])
+    insertStringWithNewBase(str, pos, base) {
         this.addBase(base)
         this.insertStringWithExistingBase(str, pos, base)
     }
 
     insertStrAtPos(str, pos, base, firstCharOffset) {
-        logFunc("insertStrAtPos", [str, pos, base, firstCharOffset])
         let offset = firstCharOffset
         for (let char of str) {
             let newId = new CharId(base, offset)
@@ -54,16 +50,42 @@ export default class Document {
         }
     }
 
-    addChars(chars){
-        logFunc("addChars", [chars])
-        if(chars.length == 0)
+    addCharsAndGetChanges(chars) {
+        let changes = []
+        if (chars.length == 0)
             return
-        let pos = this.getPosOfFirstCharWithBiggerId(chars[0].id)
-        for(let char of chars){
-            this.insertCharAtPos(char, pos)
-            ++pos
+        let pos0 = this.getPosOfFirstCharWithBiggerId(chars[0].id)
+        let prevUsedPos = null
+        let changeStr = ""
+
+        for (let i = chars.length - 1; i >= 0; --i) {
+            let pos = this.getPosOfFirstCharWithBiggerIdStartingFrom(chars[i].id, pos0)
+            if (prevUsedPos === pos || changeStr === "") {
+                changeStr = chars[i].value + changeStr
+            } else {
+                let change = { type: "add", string: changeStr, position: this.getCoordPos(prevUsedPos) }
+                changes.push(change)
+                changeStr = chars[i].value
+            }
+            if (i == 0 && changeStr !== "")
+                changes.push({ type: "add", string: changeStr, position: this.getCoordPos(pos) })
+            this.insertCharAtPos(chars[i], pos)
+            prevUsedPos = pos
         }
-        this.sortDocumentPart(1, this.chars.length - 1)
+
+        return changes
+    }
+
+    getCoordPos(pos) {
+        let line = 0
+        let column = 0
+        for (let i = pos - 1; this.chars[i].value != '\n' && i > 0; --i){
+            column++
+        }
+        for (let i = 1; i < pos; ++i)
+            if (this.chars[i].value == "\n")
+                line++
+        return { line: line, column: column }
     }
 
     sortDocumentPart(sortBeg, sortEnd) {
@@ -76,8 +98,7 @@ export default class Document {
         }
     }
 
-    addBase(base){
-        logFunc("addBase", [base])
+    addBase(base) {
         this.bases.push(base)
     }
 
@@ -86,19 +107,26 @@ export default class Document {
             this.delChar(pos)
     }
 
-    delChar(pos){
+    delChar(pos) {
         this.chars.splice(pos, 1)
     }
 
-    getPosOfCharWithId(id){ 
-        for(let pos=0; pos<this.chars.length; ++pos)
-            if(this.chars[pos].id.isEqual(id))
+    getPosOfCharWithId(id) {
+        for (let pos = 0; pos < this.chars.length; ++pos)
+            if (this.chars[pos].id.isEqual(id))
                 return pos
         return null
     }
 
     getPosOfFirstCharWithBiggerId(charId) {
         for (let pos = 1; pos < this.chars.length; ++pos)
+            if (this.chars[pos].id.isBigger(charId))
+                return pos
+        return null
+    }
+
+    getPosOfFirstCharWithBiggerIdStartingFrom(charId, startPos) {
+        for (let pos = startPos; pos < this.chars.length; ++pos)
             if (this.chars[pos].id.isBigger(charId))
                 return pos
         return null
@@ -118,15 +146,14 @@ export default class Document {
             ids.push(this.chars[i].id)
         return ids;
     }
-    getSameBase(base){
-        for(let b of this.bases)
-            if(base.isEqual(b))
+    getSameBase(base) {
+        for (let b of this.bases)
+            if (base.isEqual(b))
                 return b
         return null
     }
 
     insertCharAtPos(char, pos) {
-        logFunc("insertCharAtPos", [char, pos])
         this.chars.splice(pos, 0, char)
     }
 
@@ -149,5 +176,16 @@ export default class Document {
                 text += "|"
         }
         return text
+    }
+
+    getAsLines() {
+        let lines = []
+        let line = []
+        for (let i = 1; i < this.chars.length - 1; ++i) {
+            line.push(this.chars[i])
+            if (this.chars[i].value == '\n' || i == this.chars.length - 2)
+                lines.push(line)
+        }
+        return lines
     }
 }

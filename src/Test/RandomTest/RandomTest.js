@@ -1,24 +1,32 @@
-const NUM_OF_TESTS = 100
-const NUM_OF_SESSIONS = 3
-const MIN_NUM_OF_COMMANDS = 2
-const USE_REAL_SENTENCES = true
-const TESTED_CMD_TYPES = ["INSERT"]
+var NUM_OF_TESTS = 1
+var NUM_OF_SESSIONS = 3
+var MIN_NUM_OF_COMMANDS = 4
+var USE_REAL_SENTENCES = false
+var TESTED_CMD_TYPES = ["INSERT"]
 
-const TEST_UNTIL_FAIL = false
-const STOP_ON_FAIL = true
+var TEST_UNTIL_FAIL = false
+var STOP_ON_FAIL = true
 
-const RANDOM_STR_VALID_CHARS = "abcdefghijklmnopqrstuvwxyz";
-const MAX_RANDOM_STR_LEN = 1
-const MAX_REMOVE_LENGTH = 1
+var CHARSET1 = "abcdefghijklmnopqrstuvwxyz";
+var CHARSET2 = "ab\n";
+var RANDOM_STR_VALID_CHARS = CHARSET2
 
-const CLEAR_CONSOLE_AFTER_SUCCESS = false
+var MAX_RANDOM_STR_LEN = 3
+var MAX_REMOVE_LENGTH = 10
 
+var CUSTOM_TEST = false
+
+var CLEAR_CONSOLE_AFTER_SUCCESS = false
+    
 var sessions = []
 var testNum = 0
 var successes = 0
 
 function start(numOfTests){
-    TEST_UNTIL_FAIL ? startRandomTestingUntilFail() : startRandomTesting(numOfTests);
+    if(CUSTOM_TEST)
+        startCustomTests();
+    else
+        TEST_UNTIL_FAIL ? startRandomTestingUntilFail() : startRandomTesting(numOfTests);
 }
 
 function startRandomTesting(numOfTests = NUM_OF_TESTS) {

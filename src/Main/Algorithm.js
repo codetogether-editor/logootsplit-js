@@ -18,10 +18,7 @@ export default class Algorithm {
     }
 
     add(str, strId){
-
         let chars = this.createCharsFromStr(str, strId)
-        logFunc("add", [str, strId], [this.idsOfCharsToDeleteLater, chars])
-
         for(let i = chars.length-1; i>=0; --i){
             for(let j=this.idsOfCharsToDeleteLater.length-1; j>=0; --j){
                 if(chars[i].id.isEqual(this.idsOfCharsToDeleteLater[j])){
@@ -31,11 +28,11 @@ export default class Algorithm {
                 }
             }
         }
-        this.doc.addChars(chars)
+        let changes = this.doc.addCharsAndGetChanges(chars)
+        return changes;
     }
 
     remove(fromPos, toPos){
-        logFunc("remove", [fromPos, toPos])
         let delIds = this.doc.getCharIds(fromPos, toPos)
         let delIdsCopy = delIds.map(function(id){return id.copy})
         this.doc.delChars(fromPos, toPos)
@@ -43,7 +40,6 @@ export default class Algorithm {
     }
 
     del(ids){ //optimize eg. if consecutive ids then obtain range (pos, pos+length-1)
-        logFunc("del", [ids])
         for(let id of ids){
             let pos = this.doc.getPosOfCharWithId(id)
             if(pos != null)

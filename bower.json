@@ -1,0 +1,10 @@
+{
+  "name": "lootsplit-js",
+  "authors": [
+    "Wilhelm Olejnik"
+  ],
+  "description": "",
+  "dependencies": {
+    "ace-builds": "ace-build#^1.2.5"
+  }
+}

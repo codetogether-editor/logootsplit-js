@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ACE test</title>
+    <script src="../../../bower_components/ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="../../../dist/logootsplit.js" type="text/javascript" ></script>
+    <script src="AceTestEvents.js" type="text/javascript" charset="utf-8"></script>
+    <script src="AceTest.js" type="text/javascript" charset="utf-8"></script>
+    <script src="AceTestSession.js" type="text/javascript" charset="utf-8"></script>
+    <script src="AceTestTools.js" type="text/javascript" charset="utf-8"></script>
+    <script src="Tests/1-simpleInserts.js" type="text/javascript" charset="utf-8"></script>
+    <script src="Tests/2-insertsWithNewLines.js" type="text/javascript" charset="utf-8"></script>
+    <script src="AceTestPerformer.js" type="text/javascript" charset="utf-8"></script>
+
+<style type="text/css" media="screen">
+    #editorA { 
+        position: absolute;
+        top: 0;
+        right: 45%;
+        bottom: 0;
+        left: 0;
+    }
+    #editorB { 
+        position: absolute;
+        top: 33%;
+        right: 45%;
+        bottom: 0;
+        left: 0;
+        margin:0
+    }
+    #editorC { 
+        position: absolute;
+        top: 66%;
+        right: 45%;
+        bottom: 0;
+        left: 0;
+        margin:0
+    }
+
+    #controller{
+        position: absolute;
+        top: 33%;
+        right: 0%;
+        bottom: 0;
+        left: 60%;
+        margin:0
+    }
+
+    button{
+       font-size: 20pt; 
+    }
+</style>
+</head>
+<body>
+
+<div id="editorA"></div>
+<pre id="editorB"></pre>
+<pre id="editorC"></pre>
+<div id="controller">
+    TEST NUM <input id="testNum"></input>
+    <button onclick="aceTestPerformer.performNextEvent()"> NEXT EVENT</button>
+    <button onclick="aceTestPerformer.resetWorkspace()"> RESET EDITORS</button>
+    <button onclick="aceTestPerformer.performAllTests()"> EXEC ALL TESTS</button>
+</div>
+
+
+<script>
+
+    var editorA = ace.edit("editorA")    
+    var editorB = ace.edit("editorB")
+    var editorC = ace.edit("editorC")
+
+    for(editor of [editorA, editorB, editorC]){
+        editor.setTheme("ace/theme/monokai")
+        editor.getSession().setMode("ace/mode/javascript")
+        editor.$blockScrolling = Infinity
+    }
+
+    var aceTestPerformer = new AceTestPerformer(7)
+    t = aceTestPerformer
+    
+
+</script>
+</body>
+</html>

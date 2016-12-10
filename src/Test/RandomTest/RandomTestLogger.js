@@ -1,10 +1,10 @@
-const ALL_LOGS = false
+var ALL_LOGS = false
 
-const SHOW_CMD_LOGS = ALL_LOGS || true
-const SHOW_FUNC_LOGS = ALL_LOGS || false
+var SHOW_CMD_LOGS = ALL_LOGS || true
+var SHOW_FUNC_LOGS = ALL_LOGS || false
 
-const SHOW_SESSION_STATES_AFTER_EACH_LOG = true
-const DETAILED_SESSION_STATES = false
+var SHOW_SESSION_STATES_AFTER_EACH_LOG = true
+var DETAILED_SESSION_STATES = false
 
 function logFunc(funcName, args, additionalInfo){
     if(SHOW_FUNC_LOGS)
