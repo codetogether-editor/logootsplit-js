@@ -28,9 +28,8 @@ export default class Document {
         this.insertStringWithExistingBase(str, pos, base, firstOffset)
     }
 
-    insertStringWithExistingBase(str, pos, base, firstOffset = FIRST_ASSIGNED_OFFSET) { //optimize
+    insertStringWithExistingBase(str, pos, base, firstOffset = FIRST_ASSIGNED_OFFSET) {
         this.insertStrAtPos(str, pos, base, firstOffset)
-        //this.sortDocumentPart(1, this.chars.length - 1) //VERIFY CHANGE
         this.sortDocumentPart(pos, this.chars.length - 1)
     }
 
@@ -53,7 +52,7 @@ export default class Document {
     addCharsAndGetChanges(chars) {
         let changes = []
         if (chars.length == 0)
-            return
+            return changes
         let pos0 = this.getPosOfFirstCharWithBiggerId(chars[0].id)
         let prevUsedPos = null
         let changeStr = ""
@@ -63,30 +62,19 @@ export default class Document {
             if (prevUsedPos === pos || changeStr === "") {
                 changeStr = chars[i].value + changeStr
             } else {
-                let change = { type: "add", string: changeStr, position: this.getCoordPos(prevUsedPos) }
+                let change = { type: "add", string: changeStr, position: prevUsedPos - 1 } //ace position, not loogot
                 changes.push(change)
                 changeStr = chars[i].value
             }
             if (i == 0 && changeStr !== "")
-                changes.push({ type: "add", string: changeStr, position: this.getCoordPos(pos) })
+                changes.push({ type: "add", string: changeStr, position: pos - 1 })
             this.insertCharAtPos(chars[i], pos)
             prevUsedPos = pos
         }
-
+        
         return changes
     }
 
-    getCoordPos(pos) {
-        let line = 0
-        let column = 0
-        for (let i = pos - 1; this.chars[i].value != '\n' && i > 0; --i){
-            column++
-        }
-        for (let i = 1; i < pos; ++i)
-            if (this.chars[i].value == "\n")
-                line++
-        return { line: line, column: column }
-    }
 
     sortDocumentPart(sortBeg, sortEnd) {
         for (var pos = sortBeg + 1; pos <= sortEnd; ++pos) {
@@ -113,6 +101,13 @@ export default class Document {
 
     getPosOfCharWithId(id) {
         for (let pos = 0; pos < this.chars.length; ++pos)
+            if (this.chars[pos].id.isEqual(id))
+                return pos
+        return null
+    }
+
+    getPosOfCharWithIdStartingFrom(id, startPos){
+        for (let pos = startPos; pos < this.chars.length; ++pos)
             if (this.chars[pos].id.isEqual(id))
                 return pos
         return null
@@ -178,14 +173,13 @@ export default class Document {
         return text
     }
 
-    getAsLines() {
-        let lines = []
-        let line = []
-        for (let i = 1; i < this.chars.length - 1; ++i) {
-            line.push(this.chars[i])
-            if (this.chars[i].value == '\n' || i == this.chars.length - 2)
-                lines.push(line)
-        }
-        return lines
+    showDetailedSessionState(logHeader){
+        console.log(logHeader)
+        for(let i=0; i < this.chars.length; ++i)
+            console.log("----- " + this.getCharStateStr(this.chars[i]))
+    }
+
+    getCharStateStr(char){
+        return char.value + ":  " + char.id.fullId.toString()
     }
 }

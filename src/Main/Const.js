@@ -1,6 +1,6 @@
 window.MIN_BASE_EL = 0
 //const MAX_BASE_EL = Math.pow(2, 53) - 1
-window.MAX_BASE_EL = 1000
+window.MAX_BASE_EL = 10000000
 window.MIN_OFFSET = MIN_BASE_EL + 1
 window.MAX_OFFSET = MAX_BASE_EL
 window.FIRST_ASSIGNED_OFFSET = Math.floor(MAX_OFFSET/2)

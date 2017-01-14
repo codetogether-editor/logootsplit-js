@@ -17,6 +17,13 @@ export default class Algorithm {
         return this.createRemoteAddCommand(str, pos)
     }
 
+    remove(fromPos, toPos){
+        let delIds = this.doc.getCharIds(fromPos, toPos)
+        let delIdsCopy = delIds.map(function(id){return id.copy})
+        this.doc.delChars(fromPos, toPos)
+        return this.createRemoteDelCommand(delIdsCopy)
+    }
+
     add(str, strId){
         let chars = this.createCharsFromStr(str, strId)
         for(let i = chars.length-1; i>=0; --i){
@@ -32,21 +39,47 @@ export default class Algorithm {
         return changes;
     }
 
-    remove(fromPos, toPos){
-        let delIds = this.doc.getCharIds(fromPos, toPos)
-        let delIdsCopy = delIds.map(function(id){return id.copy})
-        this.doc.delChars(fromPos, toPos)
-        return this.createRemoteDelCommand(delIds)
-    }
-
-    del(ids){ //optimize eg. if consecutive ids then obtain range (pos, pos+length-1)
+    del(ids){
+        let pos0 = 1
+        let delPos = []
+        
         for(let id of ids){
-            let pos = this.doc.getPosOfCharWithId(id)
-            if(pos != null)
-                this.doc.delChar(pos)
+            let pos = this.doc.getPosOfCharWithIdStartingFrom(id, pos0)
+            if(pos != null){
+                delPos.push(pos)
+                pos0 = pos
+            }
             else
                 this.idsOfCharsToDeleteLater.push(id)
         }
+
+        let changes = []
+        let prevUsedPos = null
+        let delPosRange = {start: null, end:null}
+        for(let i=delPos.length-1; i>=0; --i){
+            let pos = delPos[i]
+            if(prevUsedPos === pos + 1 || delPosRange.start == null)
+                delPosRange = this.extendRange(delPosRange, pos)
+            else{
+                let change = {type: "del", from: delPosRange.start - 1, to: delPosRange.end - 1}
+                changes.push(change)
+                delPosRange = {start: pos, end: pos}
+            }
+            if(i==0 && delPosRange.start != null){
+                let change = {type: "del", from: delPosRange.start-1, to: delPosRange.end-1}
+                changes.push(change)
+            }
+            prevUsedPos = pos;
+        }
+
+        for(let i = delPos.length - 1; i >= 0; --i)
+            this.doc.delChar(delPos[i])     
+        
+        return changes
+    }
+
+    extendRange(range, pos){
+        return range.start == null ? {start: pos, end: pos} : {start: pos, end: range.end} 
     }
 
     createRemoteDelCommand(delIds){
@@ -152,14 +185,6 @@ export default class Algorithm {
         base.main.push(this.getRandomElementBetween(low + 1, high - 1))
         return base
     }
-
-    numberOfInsertableCharaters(idInsert, idNext, strLength){
-        if(idInsert.base.isPrefix(idNext))
-            return 0;
-        else
-            return strLength
-    }
-
 
     getRandomElementBetween(low, high){
         return Math.floor(Math.random() * (high - low + 1)) + low;

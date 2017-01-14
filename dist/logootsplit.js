@@ -84,10 +84,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _Algorithm2 = _interopRequireDefault(_Algorithm);
 	
-	var _DocumentChanger = __webpack_require__(8);
-	
-	var _DocumentChanger2 = _interopRequireDefault(_DocumentChanger);
-	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	window.Base = _Base2.default;
@@ -96,7 +92,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	window.Char = _Char2.default;
 	window.Document = _Document2.default;
 	window.Algorithm = _Algorithm2.default;
-	window.DocumentChanger = _DocumentChanger2.default;
 
 /***/ },
 /* 1 */
@@ -106,7 +101,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	window.MIN_BASE_EL = 0;
 	//const MAX_BASE_EL = Math.pow(2, 53) - 1
-	window.MAX_BASE_EL = 1000;
+	window.MAX_BASE_EL = 10000000;
 	window.MIN_OFFSET = MIN_BASE_EL + 1;
 	window.MAX_OFFSET = MAX_BASE_EL;
 	window.FIRST_ASSIGNED_OFFSET = Math.floor(MAX_OFFSET / 2);
@@ -156,7 +151,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = RemoteCommand;
-	module.exports = exports['default'];
+	module.exports = exports["default"];
 
 /***/ },
 /* 3 */
@@ -217,7 +212,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = Base;
-	module.exports = exports['default'];
+	module.exports = exports["default"];
 
 /***/ },
 /* 4 */
@@ -273,7 +268,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = CharId;
-	module.exports = exports['default'];
+	module.exports = exports["default"];
 
 /***/ },
 /* 5 */
@@ -308,7 +303,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = Char;
-	module.exports = exports['default'];
+	module.exports = exports["default"];
 
 /***/ },
 /* 6 */
@@ -372,9 +367,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        key: 'insertStringWithExistingBase',
 	        value: function insertStringWithExistingBase(str, pos, base) {
 	            var firstOffset = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : FIRST_ASSIGNED_OFFSET;
-	            //optimize
+	
 	            this.insertStrAtPos(str, pos, base, firstOffset);
-	            //this.sortDocumentPart(1, this.chars.length - 1) //VERIFY CHANGE
 	            this.sortDocumentPart(pos, this.chars.length - 1);
 	        }
 	    }, {
@@ -420,7 +414,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        key: 'addCharsAndGetChanges',
 	        value: function addCharsAndGetChanges(chars) {
 	            var changes = [];
-	            if (chars.length == 0) return;
+	            if (chars.length == 0) return changes;
 	            var pos0 = this.getPosOfFirstCharWithBiggerId(chars[0].id);
 	            var prevUsedPos = null;
 	            var changeStr = "";
@@ -430,28 +424,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	                if (prevUsedPos === pos || changeStr === "") {
 	                    changeStr = chars[i].value + changeStr;
 	                } else {
-	                    var change = { type: "add", string: changeStr, position: this.getCoordPos(prevUsedPos) };
+	                    var change = { type: "add", string: changeStr, position: prevUsedPos - 1 }; //ace position, not loogot
 	                    changes.push(change);
 	                    changeStr = chars[i].value;
 	                }
-	                if (i == 0 && changeStr !== "") changes.push({ type: "add", string: changeStr, position: this.getCoordPos(pos) });
+	                if (i == 0 && changeStr !== "") changes.push({ type: "add", string: changeStr, position: pos - 1 });
 	                this.insertCharAtPos(chars[i], pos);
 	                prevUsedPos = pos;
 	            }
 	
 	            return changes;
-	        }
-	    }, {
-	        key: 'getCoordPos',
-	        value: function getCoordPos(pos) {
-	            var line = 0;
-	            var column = 0;
-	            for (var i = pos - 1; this.chars[i].value != '\n' && i > 0; --i) {
-	                column++;
-	            }
-	            for (var _i = 1; _i < pos; ++_i) {
-	                if (this.chars[_i].value == "\n") line++;
-	            }return { line: line, column: column };
 	        }
 	    }, {
 	        key: 'sortDocumentPart',
@@ -485,6 +467,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        key: 'getPosOfCharWithId',
 	        value: function getPosOfCharWithId(id) {
 	            for (var pos = 0; pos < this.chars.length; ++pos) {
+	                if (this.chars[pos].id.isEqual(id)) return pos;
+	            }return null;
+	        }
+	    }, {
+	        key: 'getPosOfCharWithIdStartingFrom',
+	        value: function getPosOfCharWithIdStartingFrom(id, startPos) {
+	            for (var pos = startPos; pos < this.chars.length; ++pos) {
 	                if (this.chars[pos].id.isEqual(id)) return pos;
 	            }return null;
 	        }
@@ -561,15 +550,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return this.chars.length == 2;
 	        }
 	    }, {
-	        key: 'getAsLines',
-	        value: function getAsLines() {
-	            var lines = [];
-	            var line = [];
-	            for (var i = 1; i < this.chars.length - 1; ++i) {
-	                line.push(this.chars[i]);
-	                if (this.chars[i].value == '\n' || i == this.chars.length - 2) lines.push(line);
+	        key: 'showDetailedSessionState',
+	        value: function showDetailedSessionState(logHeader) {
+	            console.log(logHeader);
+	            for (var i = 0; i < this.chars.length; ++i) {
+	                console.log("----- " + this.getCharStateStr(this.chars[i]));
 	            }
-	            return lines;
+	        }
+	    }, {
+	        key: 'getCharStateStr',
+	        value: function getCharStateStr(char) {
+	            return char.value + ":  " + char.id.fullId.toString();
 	        }
 	    }, {
 	        key: 'text',
@@ -650,6 +641,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return this.createRemoteAddCommand(str, pos);
 	        }
 	    }, {
+	        key: 'remove',
+	        value: function remove(fromPos, toPos) {
+	            var delIds = this.doc.getCharIds(fromPos, toPos);
+	            var delIdsCopy = delIds.map(function (id) {
+	                return id.copy;
+	            });
+	            this.doc.delChars(fromPos, toPos);
+	            return this.createRemoteDelCommand(delIdsCopy);
+	        }
+	    }, {
 	        key: 'add',
 	        value: function add(str, strId) {
 	            var chars = this.createCharsFromStr(str, strId);
@@ -666,19 +667,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return changes;
 	        }
 	    }, {
-	        key: 'remove',
-	        value: function remove(fromPos, toPos) {
-	            var delIds = this.doc.getCharIds(fromPos, toPos);
-	            var delIdsCopy = delIds.map(function (id) {
-	                return id.copy;
-	            });
-	            this.doc.delChars(fromPos, toPos);
-	            return this.createRemoteDelCommand(delIds);
-	        }
-	    }, {
 	        key: 'del',
 	        value: function del(ids) {
-	            //optimize eg. if consecutive ids then obtain range (pos, pos+length-1)
+	            var pos0 = 1;
+	            var delPos = [];
+	
 	            var _iteratorNormalCompletion = true;
 	            var _didIteratorError = false;
 	            var _iteratorError = undefined;
@@ -687,8 +680,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	                for (var _iterator = ids[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	                    var id = _step.value;
 	
-	                    var pos = this.doc.getPosOfCharWithId(id);
-	                    if (pos != null) this.doc.delChar(pos);else this.idsOfCharsToDeleteLater.push(id);
+	                    var _pos = this.doc.getPosOfCharWithIdStartingFrom(id, pos0);
+	                    if (_pos != null) {
+	                        delPos.push(_pos);
+	                        pos0 = _pos;
+	                    } else this.idsOfCharsToDeleteLater.push(id);
 	                }
 	            } catch (err) {
 	                _didIteratorError = true;
@@ -704,6 +700,32 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    }
 	                }
 	            }
+	
+	            var changes = [];
+	            var prevUsedPos = null;
+	            var delPosRange = { start: null, end: null };
+	            for (var i = delPos.length - 1; i >= 0; --i) {
+	                var pos = delPos[i];
+	                if (prevUsedPos === pos + 1 || delPosRange.start == null) delPosRange = this.extendRange(delPosRange, pos);else {
+	                    var change = { type: "del", from: delPosRange.start - 1, to: delPosRange.end - 1 };
+	                    changes.push(change);
+	                    delPosRange = { start: pos, end: pos };
+	                }
+	                if (i == 0 && delPosRange.start != null) {
+	                    var _change = { type: "del", from: delPosRange.start - 1, to: delPosRange.end - 1 };
+	                    changes.push(_change);
+	                }
+	                prevUsedPos = pos;
+	            }
+	
+	            for (var _i = delPos.length - 1; _i >= 0; --_i) {
+	                this.doc.delChar(delPos[_i]);
+	            }return changes;
+	        }
+	    }, {
+	        key: 'extendRange',
+	        value: function extendRange(range, pos) {
+	            return range.start == null ? { start: pos, end: pos } : { start: pos, end: range.end };
 	        }
 	    }, {
 	        key: 'createRemoteDelCommand',
@@ -834,11 +856,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return base;
 	        }
 	    }, {
-	        key: 'numberOfInsertableCharaters',
-	        value: function numberOfInsertableCharaters(idInsert, idNext, strLength) {
-	            if (idInsert.base.isPrefix(idNext)) return 0;else return strLength;
-	        }
-	    }, {
 	        key: 'getRandomElementBetween',
 	        value: function getRandomElementBetween(low, high) {
 	            return Math.floor(Math.random() * (high - low + 1)) + low;
@@ -849,90 +866,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	}();
 	
 	exports.default = Algorithm;
-	module.exports = exports['default'];
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, "__esModule", {
-	    value: true
-	});
-	
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-	
-	var _Base = __webpack_require__(3);
-	
-	var _Base2 = _interopRequireDefault(_Base);
-	
-	var _CharId = __webpack_require__(4);
-	
-	var _CharId2 = _interopRequireDefault(_CharId);
-	
-	var _Char = __webpack_require__(5);
-	
-	var _Char2 = _interopRequireDefault(_Char);
-	
-	var _Document = __webpack_require__(6);
-	
-	var _Document2 = _interopRequireDefault(_Document);
-	
-	var _RemoteCommand = __webpack_require__(2);
-	
-	var _RemoteCommand2 = _interopRequireDefault(_RemoteCommand);
-	
-	var _DocumentChanger = __webpack_require__(8);
-	
-	var _DocumentChanger2 = _interopRequireDefault(_DocumentChanger);
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	var DocumentChanger = function () {
-	    function DocumentChanger(algorithm, editor) {
-	        _classCallCheck(this, DocumentChanger);
-	
-	        this.algorithm = algorithm;
-	        this.editor = editor;
-	        this.doc = algorithm.doc;
-	        this.sessionId = algorithm.sessionId;
-	        this.lines = this.doc.getAsLines();
-	    }
-	
-	    _createClass(DocumentChanger, [{
-	        key: 'performInsertAndGetAddCmd',
-	        value: function performInsertAndGetAddCmd(str, line, column) {
-	            var pos = this.convertToAbsolutePos(line, column);
-	            var addCmd = this.algorithm.insert(str, pos);
-	            return addCmd;
-	        }
-	    }, {
-	        key: 'addAndGetChanges',
-	        value: function addAndGetChanges(str, strId) {
-	            var changes = this.algorithm.add(str, strId);
-	            //for(let c of changes)
-	            //    console.log(c.type, c.string, c.position.line, c.position.column)
-	            return changes;
-	        }
-	    }, {
-	        key: 'convertToAbsolutePos',
-	        value: function convertToAbsolutePos(line, column) {
-	            var pos = 0;
-	            var realDoc = this.editor.getSession().getDocument();
-	
-	            if (line > 0) for (var i = 0; i < line; ++i) {
-	                pos += realDoc.getLine(i).length;
-	            }return pos + line + column + 1;
-	        }
-	    }]);
-	
-	    return DocumentChanger;
-	}();
-	
-	exports.default = DocumentChanger;
 	module.exports = exports['default'];
 
 /***/ }
